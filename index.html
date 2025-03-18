@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AtCoder Command Copier</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>AtCoder Command Copier</h1>
+    <div class="container">
+        <div class="form-group">
+            <label for="contest">Contest Name</label>
+            <input type="text" id="contest" placeholder="abc123">
+        </div>
+        <div class="form-group">
+            <label for="problem">Problem Name</label>
+            <select id="problem">
+                <option value="a">a</option>
+                <option value="b">b</option>
+                <option value="c">c</option>
+                <option value="d">d</option>
+                <option value="e">e</option>
+                <option value="f">f</option>
+                <option value="g">g</option>
+            </select>
+        </div>
+        <div class="button-group">
+            <button id="create">Create New</button>
+            <button id="test">Test & Submit</button>
+            <button id="git">Git</button>
+            <button id="next">Next Problem</button>
+        </div>
+        <div class="command-list" id="commandList" style="display: none;"></div>
+        <button id="all-copy" style="display: none;">All Copy</button>
+        <div class="alert" id="alert">Copied to clipboard!</div>
+    </div>
+
+    <script>
+        const commands = {
+            create: [
+                { text: 'cd AtCoder' },
+                { text: 'acc new {contest}' },
+                { text: 'git add .' },
+                { text: 'git commit -m "{commitMessage}"' },
+                { text: 'git push origin main' },
+                { text: 'cd {contest}/{problem}' },
+                { text: 'code main.js' },
+            ],
+            test: [
+                { text: 'node main.js' },
+                { text: 'oj-t-js' },
+                { text: 'acc-s-js' },
+            ],
+            git: [
+                { text: 'cd ../../' },
+                { text: 'git status' },
+                { text: 'git add {addFile}' },
+                { text: 'git commit -m "{commitMessage}"' },
+                { text: 'git push origin main' },
+                { text: 'cd {contest}/{problem}' },
+            ],
+            next: [
+                { text: 'cd ../../' },
+                { text: 'cd {contest}/{problem}' },
+                { text: 'code main.js' },
+            ],
+        };
+
+        const commandList = document.getElementById('commandList');
+        const alertBox = document.getElementById('alert');
+        const allCopyButton = document.getElementById('all-copy');
+
+        //addFileとcommitMessageを取得、置き換え.
+        function getReplacement(allCommands){
+            //addFileの処理.
+            if(allCommands.includes('{addFile}')){
+                    const addFileSelect = document.getElementById('addFileSelect');
+
+                    const addFile = addFileSelect.value;
+
+                    allCommands = allCommands.replace('{addFile}',addFile);
+                }
+            
+            //commitMessageの処理.
+            if (allCommands.includes('{commitMessage}')) {
+                const commitInput = document.getElementById('commit-input');
+
+                const commitMessage = commitInput.value.trim();
+            
+                allCommands = allCommands.replace('{commitMessage}', commitMessage);
+                        
+            }
+            return allCommands;
+        }
+
+        function Copy(copyText,kind){
+            const alertText = {
+                'dA':()=> 'default values',
+                'cA':()=> 'current value',
+                'cS':()=> 'a single line',
+            };
+
+            navigator.clipboard.writeText(copyText).then(() => {
+                        alertBox.textContent = `Copy ${alertText[kind]()} to clipboard`;
+                        alertBox.style.display = 'block';
+                        setTimeout(() => {
+                            alertBox.style.display = 'none';
+                            alertBox.textContent = 'Copied to clipboard!';
+                        }, 2000);
+                });
+        }
+
+        
+
+        function generateCommands(type) {
+            if(type=="next"){
+                const problem = document.getElementById('problem');
+                const currentIndex = problem.selectedIndex;
+                if(currentIndex === problem.options.length - 1){
+                    problem.selectedIndex = 0;
+                    alert("現在の問題が最終問題でした。最初の問題に戻ります");
+                    return;
+                }
+                problem.selectedIndex = currentIndex + 1;
+            }
+            const contest = document.getElementById('contest').value.trim();
+            const problem = document.getElementById('problem').value.trim();
+
+            if (!contest || !problem) {
+                alert('Please fill in both fields.');
+                return;
+            }
+
+            commandList.innerHTML = '';
+
+            let commandArray = commands[type].map(commandObj => {
+                return commandObj.text
+                    .replace('{contest}', contest)
+                    .replace('{problem}', problem);
+            });
+            
+        
+
+            allCopyButton.style.display = 'block';
+            allCopyButton.onclick = () => {
+                let allCommands = commandArray.join(' && ');
+
+                allCommands = getReplacement(allCommands);
+
+                Copy(allCommands,'cA');
+            };
+
+            
+
+            commandArray.forEach(commandText => {
+                const commandItem = document.createElement('div');
+                commandItem.className = 'command-item';
+
+                if(commandText.includes('{addFile}')){
+                    const preText = 'git add ';
+                    const addFileSelect = document.createElement('select');
+                    addFileSelect.id = 'addFileSelect';
+                    const addFileOption1 = document.createElement('option');
+                    const addFileOption2 = document.createElement('option');
+
+                    addFileOption1.value = `${contest}/${problem}`;
+                    addFileOption1.text = `${contest}/${problem}`;
+                    addFileOption2.value = ".";
+                    addFileOption2.text = ".";
+
+                    addFileSelect.add(addFileOption1);
+                    addFileSelect.add(addFileOption2);
+
+                    const addFile = addFileSelect.value;
+
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-btn';
+                    copyButton.textContent = 'Copy';
+                    copyButton.addEventListener('click', () => {
+                        const addFile = addFileSelect.value;
+                        const finalCommand = `${preText}${addFile}`;
+                        Copy(finalCommand,'cS');
+                    });
+
+                    const commandDisplay = document.createElement('div');
+                    commandDisplay.className = 'command-text';
+                    commandDisplay.textContent = preText;
+                    commandItem.appendChild(commandDisplay);
+                    commandItem.appendChild(copyButton);
+                    commandDisplay.appendChild(addFileSelect);
+                }else if (commandText.includes('{commitMessage}')) {
+                    const preText = 'git commit -m "';
+                    const postText = '"';
+                    const commitInput = document.createElement('input');
+                    commitInput.type = 'text';
+                    commitInput.placeholder = 'Enter commit message';
+                    commitInput.id = 'commit-input';
+                    if(type=="create"){
+                    commitInput.value = 'new file';
+                    }else{
+                    commitInput.value = '初AC';
+                    }
+
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-btn';
+                    copyButton.textContent = 'Copy';
+                    copyButton.addEventListener('click', () => {
+                        const commitMessage = commitInput.value.trim();
+                        if (!commitMessage) {
+                            alert('Please enter a commit message.');
+                            return;
+                        }
+                        const finalCommand = `${preText}${commitMessage}${postText}`;
+                        Copy(finalCommand,'cS');
+                    });
+
+
+                    const commandDisplay = document.createElement('div');
+                    commandDisplay.className = 'command-text';
+                    commandDisplay.textContent = preText;
+                    commandItem.appendChild(commandDisplay);
+                    commandItem.appendChild(copyButton);
+                    commandDisplay.appendChild(commitInput);
+                    commandDisplay.appendChild(document.createTextNode(postText));
+
+                } else {
+                    const commandPre = document.createElement('pre');
+                    commandPre.className = 'command-text';
+                    commandPre.textContent = commandText;
+
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-btn';
+                    copyButton.textContent = 'Copy';
+                    copyButton.addEventListener('click', () => {
+                        Copy(commandText,'cS');
+                    });
+
+
+                    commandItem.appendChild(commandPre);
+                    commandItem.appendChild(copyButton);
+                }
+
+
+                commandList.appendChild(commandItem);
+            });
+
+            commandList.style.display = 'block';
+
+            //デフォルト値をクリップボードにコピー.
+            const defaultCopy = (function(){
+                let allCommands = commandArray.join(' && ');
+
+                allCommands = getReplacement(allCommands);
+
+                Copy(allCommands,'dA');
+            }());
+        }
+
+
+        document.getElementById('create').addEventListener('click', () => generateCommands('create'));
+        document.getElementById('test').addEventListener('click', () => generateCommands('test'));
+        document.getElementById('git').addEventListener('click', () => generateCommands('git'));
+        document.getElementById('next').addEventListener('click', () => generateCommands('next'));
+    </script>
+</body>
+</html>
