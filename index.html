@@ -136,8 +136,8 @@
         const fileName = lang === "java" ? "Main.java" : "main.js";
         const testCmd =
           lang === "java"
-            ? 'javac Main.java && oj t -c "java Main"'
-            : 'node main.js && oj t -c "node main.js"';
+            ? 'javac Main.java && oj t -c "java Main" -d tests'
+            : 'node main.js && oj t -c "node main.js" -d tests';
 
         if (type == "next") {
           const problem = document.getElementById("problem");
